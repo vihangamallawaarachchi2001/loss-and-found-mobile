@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import { RootStackParamList } from '../navigation/types';
-import { postWithFeatureFlag } from '../services/api';
+import { signup } from '../services/backend';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
@@ -29,14 +29,10 @@ export default function SignupScreen({ navigation }: Props) {
     try {
       setLoading(true);
       setMessage('');
-      await postWithFeatureFlag('/api/v1/auth/signup', {
-        fullName: name,
-        email,
-        password,
-      });
+      await signup(name.trim(), email.trim(), password);
       navigation.replace('Login');
-    } catch {
-      setMessage('Signup failed. Please try again.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Signup failed. Please try again.');
     } finally {
       setLoading(false);
     }

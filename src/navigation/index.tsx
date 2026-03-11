@@ -13,6 +13,7 @@ import SignupScreen from '../screens/SignupScreen';
 import AddFoundItemScreen from '../screens/AddFoundItemScreen';
 import AddLostItemScreen from '../screens/AddLostItemScreen';
 import ItemDetailsScreen from '../screens/ItemDetailsScreen';
+import { useUserStore } from '../state/useStore';
 import { RootStackParamList } from './types';
 
 const ONBOARDING_SEEN_KEY = 'hasSeenOnboarding';
@@ -20,6 +21,8 @@ const ONBOARDING_SEEN_KEY = 'hasSeenOnboarding';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
+  const currentUser = useUserStore((state) => state.currentUser);
+  const hasHydratedStore = useUserStore((state) => state.hasHydrated);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
 
@@ -45,43 +48,54 @@ export default function AppNavigator() {
     }
   }, []);
 
-  if (isBootstrapping) {
+  if (isBootstrapping || !hasHydratedStore) {
     return <LoadingScreen />;
   }
+
+  const shouldShowOnboarding = !currentUser && !hasSeenOnboarding;
+  const initialRoute = shouldShowOnboarding ? 'Onboarding' : currentUser ? 'Home' : 'Login';
 
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={hasSeenOnboarding ? 'Login' : 'Onboarding'}
+        initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
       >
-        {!hasSeenOnboarding && (
+        {shouldShowOnboarding && (
           <Stack.Screen name="Onboarding">
             {(props) => (
               <OnboardingScreen {...props} onFinish={handleOnboardingFinish} />
             )}
           </Stack.Screen>
         )}
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Signup" component={SignupScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen
-          name="AddLostItem"
-          component={AddLostItemScreen}
-          options={{ headerShown: true, title: 'List Lost Item' }}
-        />
-        <Stack.Screen
-          name="AddFoundItem"
-          component={AddFoundItemScreen}
-          options={{ headerShown: true, title: 'List Found Item' }}
-        />
-        <Stack.Screen
-          name="ItemDetails"
-          component={ItemDetailsScreen}
-          options={{ headerShown: true, title: 'Item Details' }}
-        />
+        {!currentUser ? (
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+          </>
+        ) : null}
+        {currentUser ? (
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen
+              name="AddLostItem"
+              component={AddLostItemScreen}
+              options={{ headerShown: true, title: 'List Lost Item' }}
+            />
+            <Stack.Screen
+              name="AddFoundItem"
+              component={AddFoundItemScreen}
+              options={{ headerShown: true, title: 'List Found Item' }}
+            />
+            <Stack.Screen
+              name="ItemDetails"
+              component={ItemDetailsScreen}
+              options={{ headerShown: true, title: 'Item Details' }}
+            />
+          </>
+        ) : null}
       </Stack.Navigator>
     </NavigationContainer>
   );

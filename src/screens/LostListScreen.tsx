@@ -1,6 +1,7 @@
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Plus } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import EmptyState from '../components/common/EmptyState';
@@ -14,6 +15,7 @@ type NavProp = NativeStackNavigationProp<RootStackParamList>;
 export default function LostListScreen() {
   const navigation = useNavigation<NavProp>();
   const items = useUserStore((state) => state.lostItems);
+  const visibleItems = useMemo(() => items.filter((item) => item.status === 'active'), [items]);
 
   return (
     <ScrollView className="flex-1 bg-slate-50" contentContainerStyle={{ padding: 20, paddingTop: 62 }}>
@@ -30,10 +32,10 @@ export default function LostListScreen() {
       </View>
 
       <View className="mt-5">
-        {items.length === 0 ? (
+        {visibleItems.length === 0 ? (
           <EmptyState title="No lost items yet" subtitle="Use 'List a Lost Item' to add the first report." />
         ) : (
-          items.map((item) => (
+          visibleItems.map((item) => (
             <View key={item.id} className="mb-3">
               <ItemCard
                 item={item}

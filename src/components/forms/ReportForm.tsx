@@ -9,8 +9,9 @@ import { validateReportInput } from '../../utils/validation';
 
 type Props = {
   typeLabel: 'Lost' | 'Found';
-  onSubmit: (payload: CreateReportInput) => void;
+  onSubmit: (payload: CreateReportInput) => Promise<void> | void;
   submitLabel: string;
+  submitting?: boolean;
 };
 
 const formatDateTime = (date: Date) => {
@@ -23,7 +24,7 @@ const formatDateTime = (date: Date) => {
   return `${year}-${month}-${day} ${hour}:${minute}`;
 };
 
-export default function ReportForm({ typeLabel, onSubmit, submitLabel }: Props) {
+export default function ReportForm({ typeLabel, onSubmit, submitLabel, submitting = false }: Props) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -69,7 +70,7 @@ export default function ReportForm({ typeLabel, onSubmit, submitLabel }: Props) 
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setSubmitted(true);
     const hasErrors = Object.values(errors).some(Boolean);
 
@@ -77,13 +78,15 @@ export default function ReportForm({ typeLabel, onSubmit, submitLabel }: Props) 
       return;
     }
 
-    onSubmit(payload);
-    setTitle('');
-    setDescription('');
-    setLocation('');
-    setImageUri(undefined);
-    setEventDate(new Date());
-    setSubmitted(false);
+    await onSubmit(payload);
+    if (!submitting) {
+      setTitle('');
+      setDescription('');
+      setLocation('');
+      setImageUri(undefined);
+      setEventDate(new Date());
+      setSubmitted(false);
+    }
   };
 
   return (
@@ -153,7 +156,11 @@ export default function ReportForm({ typeLabel, onSubmit, submitLabel }: Props) 
         )}
       </View>
 
-      <Pressable onPress={handleSubmit} className="mt-5 items-center rounded-xl bg-blue-600 py-3">
+      <Pressable
+        onPress={handleSubmit}
+        disabled={submitting}
+        className="mt-5 items-center rounded-xl bg-blue-600 py-3"
+      >
         <Text className="font-semibold text-white">{submitLabel}</Text>
       </Pressable>
     </View>

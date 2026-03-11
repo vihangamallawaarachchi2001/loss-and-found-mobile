@@ -1,15 +1,21 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import EmptyState from '../components/common/EmptyState';
 import SectionTitle from '../components/common/SectionTitle';
 import { NATIVE_ENV } from '../services/api';
+import { updateProfile } from '../services/backend';
 import { useUserStore } from '../state/useStore';
 import { validateProfile } from '../utils/validation';
+
+const ONBOARDING_SEEN_KEY = 'hasSeenOnboarding';
 
 export default function ProfileScreen() {
   const user = useUserStore((state) => state.currentUser);
   const updateCurrentUserProfile = useUserStore((state) => state.updateCurrentUserProfile);
+  const setSessionUser = useUserStore((state) => state.setSessionUser);
+  const logout = useUserStore((state) => state.logout);
   const lostItems = useUserStore((state) => state.lostItems);
   const foundItems = useUserStore((state) => state.foundItems);
 
@@ -31,6 +37,8 @@ export default function ProfileScreen() {
 
   const [fullName, setFullName] = useState(user?.fullName ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
 
   const { fullNameError, phoneError } = useMemo(() => validateProfile(fullName, phone), [fullName, phone]);
 
@@ -63,21 +71,46 @@ export default function ProfileScreen() {
         />
         {phoneError ? <Text className="mt-1 text-xs text-red-500">{phoneError}</Text> : null}
 
-        <Text
-          onPress={() => {
-            if (!fullNameError && !phoneError) {
-              updateCurrentUserProfile({ fullName, phone });
+        <Pressable
+          disabled={saving}
+          onPress={async () => {
+            if (!user || fullNameError || phoneError) {
+              return;
+            }
+
+            try {
+              setSaving(true);
+              setMessage('');
+              const updated = await updateProfile(user.id, fullName, phone);
+              updateCurrentUserProfile({ fullName: updated.fullName ?? fullName, phone: updated.phone ?? phone });
+              setSessionUser({ ...user, ...updated });
+              setMessage('Profile updated successfully.');
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : 'Could not update profile.');
+            } finally {
+              setSaving(false);
             }
           }}
-          className="mt-5 rounded-xl bg-blue-600 px-4 py-3 text-center font-semibold text-white"
+          className="mt-5 rounded-xl bg-blue-600 px-4 py-3"
         >
-          Save Profile
-        </Text>
+          <Text className="text-center font-semibold text-white">{saving ? 'Saving...' : 'Save Profile'}</Text>
+        </Pressable>
+        {message ? <Text className="mt-3 text-sm text-slate-600">{message}</Text> : null}
       </View>
 
       <View className="mt-4 rounded-2xl bg-white p-5">
         <Text className="text-base font-semibold text-slate-900">Environment</Text>
         <Text className="mt-2 text-slate-600">NATIVE_ENV = {NATIVE_ENV}</Text>
+        <Pressable
+          onPress={async () => {
+            await AsyncStorage.setItem(ONBOARDING_SEEN_KEY, 'true');
+            setSessionUser(null);
+            logout();
+          }}
+          className="mt-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3"
+        >
+          <Text className="text-center font-semibold text-red-600">Logout</Text>
+        </Pressable>
       </View>
 
       <View className="mt-4 rounded-2xl bg-white p-5">

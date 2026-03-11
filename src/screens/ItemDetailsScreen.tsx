@@ -1,8 +1,9 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { RootStackParamList } from '../navigation/types';
+import { listOwnerAlerts, submitMatchDecision } from '../services/backend';
 import { useUserStore } from '../state/useStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetails'>;
@@ -27,7 +28,9 @@ export default function ItemDetailsScreen({ route }: Props) {
   const acceptMatch = useUserStore((state) => state.acceptMatch);
   const rejectMatch = useUserStore((state) => state.rejectMatch);
   const markClaimed = useUserStore((state) => state.markClaimed);
+  const setBackendAlerts = useUserStore((state) => state.setBackendAlerts);
   const getDecisionForPair = useUserStore((state) => state.getDecisionForPair);
+  const [processing, setProcessing] = useState(false);
 
   if (!item) {
     return (
@@ -90,13 +93,43 @@ export default function ItemDetailsScreen({ route }: Props) {
           {!decision || decision.status === 'pending' ? (
             <View className="mt-4 flex-row gap-3">
               <Pressable
-                onPress={() => acceptMatch(alertLostId, alertFoundId)}
+                disabled={processing}
+                onPress={async () => {
+                  if (!currentUser?.id || processing) {
+                    return;
+                  }
+
+                  try {
+                    setProcessing(true);
+                    await submitMatchDecision('accept', alertLostId, alertFoundId, currentUser.id);
+                    acceptMatch(alertLostId, alertFoundId);
+                    const latest = await listOwnerAlerts(currentUser.id);
+                    setBackendAlerts(latest);
+                  } finally {
+                    setProcessing(false);
+                  }
+                }}
                 className="flex-1 rounded-xl bg-blue-600 py-3"
               >
                 <Text className="text-center font-semibold text-white">Accept</Text>
               </Pressable>
               <Pressable
-                onPress={() => rejectMatch(alertLostId, alertFoundId)}
+                disabled={processing}
+                onPress={async () => {
+                  if (!currentUser?.id || processing) {
+                    return;
+                  }
+
+                  try {
+                    setProcessing(true);
+                    await submitMatchDecision('reject', alertLostId, alertFoundId, currentUser.id);
+                    rejectMatch(alertLostId, alertFoundId);
+                    const latest = await listOwnerAlerts(currentUser.id);
+                    setBackendAlerts(latest);
+                  } finally {
+                    setProcessing(false);
+                  }
+                }}
                 className="flex-1 rounded-xl border border-slate-300 bg-white py-3"
               >
                 <Text className="text-center font-semibold text-slate-700">Reject</Text>
@@ -110,7 +143,22 @@ export default function ItemDetailsScreen({ route }: Props) {
                 Finder contact shared above. Claiming is outside the app.
               </Text>
               <Pressable
-                onPress={() => markClaimed(alertLostId, alertFoundId)}
+                disabled={processing}
+                onPress={async () => {
+                  if (!currentUser?.id || processing) {
+                    return;
+                  }
+
+                  try {
+                    setProcessing(true);
+                    await submitMatchDecision('claim', alertLostId, alertFoundId, currentUser.id);
+                    markClaimed(alertLostId, alertFoundId);
+                    const latest = await listOwnerAlerts(currentUser.id);
+                    setBackendAlerts(latest);
+                  } finally {
+                    setProcessing(false);
+                  }
+                }}
                 className="mt-3 rounded-xl bg-emerald-600 py-3"
               >
                 <Text className="text-center font-semibold text-white">Mark as Claimed</Text>

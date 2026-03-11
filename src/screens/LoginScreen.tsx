@@ -1,15 +1,18 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import { RootStackParamList } from '../navigation/types';
-import { postWithFeatureFlag } from '../services/api';
+import { login } from '../services/backend';
 import { useUserStore } from '../state/useStore';
+
+const ONBOARDING_SEEN_KEY = 'hasSeenOnboarding';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
-  const setCurrentUser = useUserStore((state) => state.setCurrentUser);
+  const setSessionUser = useUserStore((state) => state.setSessionUser);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,11 +27,12 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       setLoading(true);
       setErrorMessage('');
-      await postWithFeatureFlag('/api/v1/auth/login', { email, password });
-      setCurrentUser(email.trim());
+      const user = await login(email.trim(), password);
+      setSessionUser(user);
+      await AsyncStorage.setItem(ONBOARDING_SEEN_KEY, 'true');
       navigation.replace('Home');
     } catch (err) {
-      setErrorMessage('Invalid credentials. Please try again.');
+      setErrorMessage(err instanceof Error ? err.message : 'Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }

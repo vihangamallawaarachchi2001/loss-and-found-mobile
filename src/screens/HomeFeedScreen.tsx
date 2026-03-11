@@ -1,5 +1,5 @@
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { BellRing } from 'lucide-react-native';
 import { useEffect, useMemo, useRef } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
@@ -8,6 +8,7 @@ import EmptyState from '../components/common/EmptyState';
 import SectionTitle from '../components/common/SectionTitle';
 import ItemCard from '../components/items/ItemCard';
 import { RootStackParamList } from '../navigation/types';
+import { getProfile, listItems, listOwnerAlerts } from '../services/backend';
 import { sendInAppNotification, registerForNotifications } from '../services/notifications';
 import { useUserStore } from '../state/useStore';
 
@@ -15,13 +16,17 @@ type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeFeedScreen() {
   const navigation = useNavigation<NavProp>();
+  const isFocused = useIsFocused();
   const currentUser = useUserStore((state) => state.currentUser);
   const lostItems = useUserStore((state) => state.lostItems);
   const foundItems = useUserStore((state) => state.foundItems);
   const getOwnerAlerts = useUserStore((state) => state.getOwnerAlerts);
+  const setReports = useUserStore((state) => state.setReports);
+  const setBackendAlerts = useUserStore((state) => state.setBackendAlerts);
+  const setSessionUser = useUserStore((state) => state.setSessionUser);
 
-  const recentLost = useMemo(() => lostItems.slice(0, 8), [lostItems]);
-  const recentFound = useMemo(() => foundItems.slice(0, 8), [foundItems]);
+  const recentLost = useMemo(() => lostItems.filter((item) => item.status === 'active').slice(0, 8), [lostItems]);
+  const recentFound = useMemo(() => foundItems.filter((item) => item.status === 'active').slice(0, 8), [foundItems]);
   const alerts = useMemo(() => {
     if (!currentUser) {
       return [];
@@ -35,6 +40,40 @@ export default function HomeFeedScreen() {
   useEffect(() => {
     registerForNotifications().catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadRemoteData = async () => {
+      if (!currentUser?.id) {
+        return;
+      }
+
+      try {
+        const [lost, found, alertRows, profile] = await Promise.all([
+          listItems('lost'),
+          listItems('found'),
+          listOwnerAlerts(currentUser.id),
+          getProfile(currentUser.id),
+        ]);
+
+        if (!isActive) {
+          return;
+        }
+
+        setSessionUser({ ...currentUser, ...profile });
+        setReports(lost, found);
+        setBackendAlerts(alertRows);
+      } catch {
+      }
+    };
+
+    loadRemoteData();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentUser?.id, isFocused]);
 
   useEffect(() => {
     alerts.forEach((alert) => {

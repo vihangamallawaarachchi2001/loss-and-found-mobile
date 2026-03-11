@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import { RootStackParamList } from '../navigation/types';
-import { postWithFeatureFlag } from '../services/api';
+import { forgotPassword } from '../services/backend';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ForgotPassword'>;
 
@@ -21,10 +21,10 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
     try {
       setLoading(true);
       setMessage('');
-      await postWithFeatureFlag('/api/v1/auth/forgot-password', { email });
+      await forgotPassword(email.trim());
       navigation.navigate('ResetPassword', { email });
-    } catch {
-      setMessage('Could not send reset code. Please try again.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not send reset code. Please try again.');
     } finally {
       setLoading(false);
     }

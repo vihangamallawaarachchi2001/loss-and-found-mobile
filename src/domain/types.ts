@@ -3,9 +3,11 @@ export type ItemType = 'lost' | 'found';
 export type ItemStatus = 'active' | 'claimed';
 
 export interface UserProfile {
+  id: string;
   email: string;
   fullName: string;
   phone: string;
+  token?: string;
 }
 
 export interface ItemReport {
@@ -39,6 +41,16 @@ export interface OwnerAlert {
   confidence: number;
   textScore: number;
   imageScore: number;
+  status?: OwnerDecision;
+}
+
+export interface BackendOwnerAlert {
+  lostItemId: string;
+  foundItemId: string;
+  textScore: number;
+  imageScore: number;
+  confidence: number;
+  status: OwnerDecision;
 }
 
 export interface CreateReportInput {
