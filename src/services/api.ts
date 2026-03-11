@@ -1,8 +1,30 @@
 import axios from 'axios';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import Constants from 'expo-constants';
+
+function resolveBaseUrl(): string {
+  const explicit = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  const hostUri =
+    (Constants.expoConfig as { hostUri?: string } | null)?.hostUri ??
+    (Constants.manifest2 as { extra?: { expoGo?: { debuggerHost?: string } } } | null)
+      ?.extra?.expoGo?.debuggerHost;
+
+  if (hostUri) {
+    const host = hostUri.split(':')[0];
+    if (host) {
+      return `http://${host}:8080`;
+    }
+  }
+
+  return 'http://localhost:8080';
+}
 
 export const api = axios.create({
-  baseURL: 'http://localhost:5000', // ASP.NET Gateway
+  baseURL: resolveBaseUrl(),
   timeout: 5000,
 });
 
