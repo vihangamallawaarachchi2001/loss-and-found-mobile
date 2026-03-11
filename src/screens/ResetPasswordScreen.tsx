@@ -29,9 +29,9 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
     try {
       setLoading(true);
       setMessage('');
-      await postWithFeatureFlag('/reset-password', {
+      await postWithFeatureFlag('/api/v1/auth/reset-password', {
         email,
-        resetCode,
+        otp: resetCode,
         newPassword,
       });
       navigation.replace('Login');
