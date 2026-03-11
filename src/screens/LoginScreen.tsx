@@ -24,7 +24,7 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       setLoading(true);
       setErrorMessage('');
-      await postWithFeatureFlag('/login', { email, password });
+      await postWithFeatureFlag('/api/v1/auth/login', { email, password });
       setCurrentUser(email.trim());
       navigation.replace('Home');
     } catch (err) {
