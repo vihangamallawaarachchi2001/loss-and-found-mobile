@@ -29,7 +29,11 @@ export default function SignupScreen({ navigation }: Props) {
     try {
       setLoading(true);
       setMessage('');
-      await postWithFeatureFlag('/signup', { name, email, password });
+      await postWithFeatureFlag('/api/v1/auth/signup', {
+        fullName: name,
+        email,
+        password,
+      });
       navigation.replace('Login');
     } catch {
       setMessage('Signup failed. Please try again.');
