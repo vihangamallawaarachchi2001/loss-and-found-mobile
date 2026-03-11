@@ -21,7 +21,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
     try {
       setLoading(true);
       setMessage('');
-      await postWithFeatureFlag('/forgot-password', { email });
+      await postWithFeatureFlag('/api/v1/auth/forgot-password', { email });
       navigation.navigate('ResetPassword', { email });
     } catch {
       setMessage('Could not send reset code. Please try again.');
